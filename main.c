@@ -1,11 +1,14 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <time.h>
 
-int buffer = 0 ;
-int turno;
-char letra;
-char infocuenta[20];
+int buffer [10] ;
+int count = 0;
+char letra = 'A';
+int infocuenta;
 sem_t empty,full;  
 sem_t sem_prod;
 sem_t sem_con;
@@ -16,42 +19,48 @@ void* productor(void* data)
 {
        while(1){  
         sem_wait(&empty);  
-        for (size_t i = 0; i < 9; i++)
-	    {
+        
+	    
             pthread_mutex_lock(&mutex);
 			
-            printf( "que ocpion desea elegir A:abrir una cuenta \n ");
-			scanf("%c",&letra);
-            buffer++;
-            printf(" El turno del cliente %d pra la solicitud %c\n ", buffer, letra) ;
+            printf( "bienvenido al banco tome su turno \n ");
+			buffer[count] = count + 1;
+            printf(" su turno es  %d,%c\n ", buffer[count], letra) ;
+            count++;
+             sleep(3);
             pthread_mutex_unlock(&mutex);
 			
-	    }  
+	     
         sem_post(&full);        
-        return NULL;
+        
     }  
+    
 }
 void* consumidor(void* data)
 {
 	
        while(1)
         {
-        sem_wait(&empty); 
-        for (size_t i = 0; i < 9; i++)
-	    {
-            pthread_mutex_lock(&mutex);
-            printf( " la caja va a atender %d \n ",buffer);  
-            buffer--;
-            printf(" rellene la informacion para abrir la cuenta \n ") ;
-			scanf("%s" ,infocuenta);
-			printf("el nombre de su cuenta sera %s \n ", infocuenta);
-            pthread_mutex_unlock(&mutex);
-			
-	    }    
+            int y;
+         int infocuenta=rand()%100000;
+        sem_wait(&full); 
         
-        sem_post(&full);        
-        return NULL;
+	    
+            pthread_mutex_lock(&mutex);
+            printf( " la caja va a atender %d,%c \n ",buffer[count] , letra);  
+            y = buffer[count - 1];
+            count--;
+            printf("el numero de su cuenta sera  %d \n ", infocuenta);
+            printf("se libero el turno %d\n",y);
+            pthread_mutex_unlock(&mutex);
+            
+			
+	       
+        
+        sem_post(&empty);        
+        
     	}	
+        
 		
        
 }
@@ -60,12 +69,13 @@ void* consumidor(void* data)
 int main(int argc, char** argv)
 {
     
-	
-		    pthread_t thrd_prod , thrd_cons;  
+	srand(time(NULL));
+    
+	pthread_t thrd_prod , thrd_cons;  
 
     pthread_mutex_init( &mutex , NULL );     
     
-    sem_init (&empty, 0, 5);            
+    sem_init (&empty, 0, 10);            
     sem_init (&full, 0, 0);        
     
     if( pthread_create( &thrd_prod , NULL, productor ,  NULL ) != 0 )  {
